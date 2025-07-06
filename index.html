@@ -191,7 +191,7 @@
       const decision = negatives <= 3 ? 'sme' : 'ne sme';
       const ref = 'REF-' + Date.now();
       const fs = 12;
-      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(104.6), y: mmToPt(297 - 52.6), size: fs });
+      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(104.6), y: mmToPt(297 - 54.3), size: fs });
       page.drawText(grades.a.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 104.6), size: fs });
       page.drawText(grades.b.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 125.4), size: fs });
       page.drawText(grades.c.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 145.7), size: fs });
