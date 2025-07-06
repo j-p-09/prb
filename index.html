@@ -3,33 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <title>E-redovalnica</title>
-  <!-- pdf-lib iz CDN za zanesljivo nalaganje -->
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js" defer></script>
-  <script src="./fontkit.min.js" defer></script>
+  <!-- Pomembno: brez defer, da je pdf-lib in fontkit pravočasno naložen -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="./fontkit.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4 }
-    nav { display: flex; background: #333; color: #fff }
-    nav button { flex: 1; padding: 15px; border: none; background: #333; color: #fff; font-weight: bold; cursor: pointer }
-    nav button.active { background: #555 }
-    .page { display: none; padding: 20px }
-    .page.active { display: block }
-    table { width: 100%; border-collapse: collapse; background: #fff }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: center }
-    th { background: #eee }
-    .student-name { font-weight: bold }
-    .student-surname { display: block; font-weight: normal }
-    .blue { color: #0066cc; font-weight: bold }
-    .red { color: #cc0000; font-weight: bold }
-    .black { color: #000; font-weight: bold; font-size: 1.2em }
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 5 }
-    .dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,.3); z-index: 10; min-width: 260px }
-    .dialog h3 { margin-top: 0 }
-    .dialog .bottom-bar { display: flex; justify-content: space-between; margin-top: 15px }
-    .dialog button { padding: 6px 12px; cursor: pointer }
-    .student-list { background: #fff; padding: 10px }
-    .student-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px }
-    .student-item span { flex: 1 }
-    input[type=text] { padding: 6px; margin-right: 8px }
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+    nav { display: flex; background: #333; color: #fff; }
+    nav button { flex: 1; padding: 15px; border: none; background: #333; color: #fff; font-weight: bold; cursor: pointer; }
+    nav button.active { background: #555; }
+    .page { display: none; padding: 20px; }
+    .page.active { display: block; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background: #eee; }
+    .student-name { font-weight: bold; }
+    .student-surname { display: block; font-weight: normal; }
+    .blue { color: #0066cc; font-weight: bold; }
+    .red { color: #cc0000; font-weight: bold; }
+    .black { color: #000; font-weight: bold; font-size: 1.2em; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 5; }
+    .dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+              background: #fff; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,.3);
+              z-index: 10; min-width: 260px; }
+    .dialog h3 { margin-top: 0; }
+    .dialog .bottom-bar { display: flex; justify-content: space-between; margin-top: 15px; }
+    .dialog button { padding: 6px 12px; cursor: pointer; }
+    .student-list { background: #fff; padding: 10px; }
+    .student-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .student-item span { flex: 1; }
+    input[type=text] { padding: 6px; margin-right: 8px; }
   </style>
 </head>
 <body>
@@ -37,6 +39,7 @@
   <button class="tab-btn active" data-tab="redovalnica">Redovalnica</button>
   <button class="tab-btn" data-tab="nastavitve">Nastavitve</button>
 </nav>
+
 <div id="redovalnica" class="page active">
   <table id="gradeTable">
     <thead>
@@ -45,15 +48,18 @@
     <tbody></tbody>
   </table>
 </div>
+
 <div id="nastavitve" class="page">
-  <h2>Seznam ucenec</h2>
+  <h2>Seznam ucencev</h2>
   <div id="studentList" class="student-list"></div>
-  <h3>Dodaj novega ucenec</h3>
-  <input id="newName"  type="text" placeholder="Ime">
-  <input id="newSurname" type="text" placeholder="Priimek">
+  <h3>Dodaj novega ucenca</h3>
+  <input id="newName"  type="text" placeholder="Ime (brez šumnikov)">
+  <input id="newSurname" type="text" placeholder="Priimek (brez šumnikov)">
   <button id="addBtn">Dodaj</button>
 </div>
+
 <div id="overlay" class="overlay"></div>
+
 <div id="dialog" class="dialog">
   <div id="dialogContent"></div>
   <div class="bottom-bar">
@@ -62,193 +68,203 @@
   </div>
 </div>
 
-<script defer>
-window.onload = async () => {
-  const students = JSON.parse(localStorage.getItem("students") || "[]");
-  const $$ = sel => document.querySelector(sel);
-  const $$$ = sel => document.querySelectorAll(sel);
+<script>
+  (async () => {
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    const $$ = sel => document.querySelector(sel);
+    const $$$ = sel => document.querySelectorAll(sel);
 
-  function saveStudents() {
-    localStorage.setItem("students", JSON.stringify(students));
-  }
+    function saveStudents() {
+      localStorage.setItem("students", JSON.stringify(students));
+    }
 
-  function renderTable() {
-    const tbody = $$('#gradeTable tbody');
-    tbody.innerHTML = '';
-    students.forEach((s, i) => {
-      const tr = document.createElement('tr');
-      const tdName = document.createElement('td');
-      tdName.innerHTML = `<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
-      tr.appendChild(tdName);
-      ['a', 'b', 'c'].forEach(sk => {
-        const td = document.createElement('td');
-        td.innerHTML = (s[sk] || []).join(', ');
-        td.onclick = () => openDialog(i, sk);
-        tr.appendChild(td);
+    function renderTable() {
+      const tbody = $$('#gradeTable tbody');
+      tbody.innerHTML = '';
+      students.forEach((s, i) => {
+        const tr = document.createElement('tr');
+        const tdName = document.createElement('td');
+        tdName.innerHTML = `<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
+        tr.appendChild(tdName);
+        ['a', 'b', 'c'].forEach(sk => {
+          const td = document.createElement('td');
+          td.innerHTML = (s[sk] || []).join(', ');
+          td.onclick = () => openDialog(i, sk);
+          tr.appendChild(td);
+        });
+        const tdFinal = document.createElement('td');
+        tdFinal.innerHTML = s.final || '';
+        tdFinal.onclick = () => openDialog(i, 'final');
+        tr.appendChild(tdFinal);
+        tbody.appendChild(tr);
       });
-      const tdFinal = document.createElement('td');
-      tdFinal.innerHTML = s.final || '';
-      tdFinal.onclick = () => openDialog(i, 'final');
-      tr.appendChild(tdFinal);
-      tbody.appendChild(tr);
-    });
-    renderStudentList();
-    saveStudents();
-  }
+      renderStudentList();
+      saveStudents();
+    }
 
-  function renderStudentList() {
-    const list = $$('#studentList');
-    list.innerHTML = '';
-    students.forEach((s, i) => {
-      const div = document.createElement('div');
-      div.className = 'student-item';
-      div.innerHTML = `<span>${s.name} ${s.surname}</span>` +
-        `<button onclick="downloadOOC(${i})">OOC</button>` +
-        `<button onclick="removeStudent(${i})">Izbrisi</button>`;
-      list.appendChild(div);
-    });
-  }
+    function renderStudentList() {
+      const list = $$('#studentList');
+      list.innerHTML = '';
+      students.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.className = 'student-item';
+        div.innerHTML = `<span>${s.name} ${s.surname}</span>` +
+          `<button onclick="downloadOOC(${i})">OOC</button>` +
+          `<button onclick="removeStudent(${i})">Izbrisi</button>`;
+        list.appendChild(div);
+      });
+    }
 
-  $$('#addBtn').onclick = () => {
-    const name = $$('#newName').value.trim();
-    const surname = $$('#newSurname').value.trim();
-    if (name && surname) {
+    $$('#addBtn').onclick = () => {
+      const name = $$('#newName').value.trim();
+      const surname = $$('#newSurname').value.trim();
+      if (!name || !surname) {
+        alert("Izpolni ime in priimek (brez šumnikov)!");
+        return;
+      }
+      // Preveri, da ni šumnikov v vnosu
+      const forbiddenChars = /[čšžČŠŽ]/;
+      if (forbiddenChars.test(name) || forbiddenChars.test(surname)) {
+        alert("Prosimo, ne uporabljajte šumnikov v imenih!");
+        return;
+      }
       students.push({ name, surname, a: [], b: [], c: [], final: '' });
       $$('#newName').value = '';
       $$('#newSurname').value = '';
       renderTable();
-    }
-  };
+    };
 
-  window.removeStudent = index => {
-    students.splice(index, 1);
-    renderTable();
-  };
+    window.removeStudent = index => {
+      students.splice(index, 1);
+      renderTable();
+    };
 
-  const overlay = $$('#overlay');
-  const dialog = $$('#dialog');
-  const content = $$('#dialogContent');
-  let activeStudent = -1, activeType = '';
+    const overlay = $$('#overlay');
+    const dialog = $$('#dialog');
+    const content = $$('#dialogContent');
+    let activeStudent = -1, activeType = '';
 
-  function openDialog(index, type) {
-    activeStudent = index; activeType = type;
-    overlay.style.display = 'block';
-    dialog.style.display = 'block';
-    const s = students[index];
-    if (type === 'final') {
-      const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
-      const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
-      content.innerHTML = `<h3>Koncna ocena</h3><p>Povprecje: ${avg}</p>` +
-        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('') +
-        `<div><input type="radio" name="gradeVal" id="gN" value="N"> <label for="gN">N</label></div>`;
-    } else {
-      content.innerHTML = `<h3>Vpisi oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>` +
-        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
-    }
-  }
-
-  function closeDialog() {
-    overlay.style.display = 'none';
-    dialog.style.display = 'none';
-    content.innerHTML = '';
-    activeStudent = -1;
-    activeType = '';
-  }
-
-  $$('#cancelBtn').onclick = closeDialog;
-  $$('#saveBtn').onclick = () => {
-    const sel = document.querySelector('input[name="gradeVal"]:checked');
-    if (!sel) { alert('Izberi oceno!'); return; }
-    const val = sel.value;
-    if (activeType === 'final') {
-      students[activeStudent].final = `<span class="black">${val}</span>`;
-    } else {
-      const colour = $$('#gradeType').value;
-      const formatted = `<span class="${colour}">${val}</span>`;
-      students[activeStudent][activeType].push(formatted);
-    }
-    closeDialog();
-    renderTable();
-  };
-  overlay.onclick = closeDialog;
-
-  window.downloadOOC = async i => {
-    try {
-      if (!window.PDFLib) throw new Error("PDFLib ni naložen!");
-      if (!window.fontkit) throw new Error("Fontkit ni naložen!");
-
-      const url = 'OOC.pdf'; // Tvoj predloga PDF v isti mapi
-      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
-      const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-
-      pdfDoc.registerFontkit(window.fontkit);
-
-      const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
-      const font = await pdfDoc.embedFont(fontBytes);
-
-      const page = pdfDoc.getPage(0);
-      const s = students[i];
-      const grades = {
-        a: s.a.map(g => g.replace(/<[^>]+>/g, '')),
-        b: s.b.map(g => g.replace(/<[^>]+>/g, '')),
-        c: s.c.map(g => g.replace(/<[^>]+>/g, ''))
-      };
-
-      const finalRaw = s.final.replace(/<[^>]+>/g, '');
-      let uspeh = 'se ni dolocen';
-      switch (finalRaw) {
-        case '1': uspeh = 'nezadosten (1)'; break;
-        case '2': uspeh = 'zadosten (2)'; break;
-        case '3': uspeh = 'dober (3)'; break;
-        case '4': uspeh = 'prav dober (4)'; break;
-        case '5': uspeh = 'odlicen (5)'; break;
-        case 'N': uspeh = 'ne ocenjen'; break;
+    function openDialog(index, type) {
+      activeStudent = index; activeType = type;
+      overlay.style.display = 'block';
+      dialog.style.display = 'block';
+      const s = students[index];
+      if (type === 'final') {
+        const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
+        const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
+        content.innerHTML = `<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>` +
+          [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('') +
+          `<div><input type="radio" name="gradeVal" id="gN" value="N"> <label for="gN">N</label></div>`;
+      } else {
+        content.innerHTML = `<h3>Vpisi oceno</h3>
+          <label>Tip ocene:</label>
+          <select id="gradeType">
+            <option value="blue">Ustna ocena</option>
+            <option value="red">Pisna ocena</option>
+            <option value="blue">Izdelek</option>
+          </select>` +
+          [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
       }
-
-      const all = [...grades.a, ...grades.b, ...grades.c];
-      const negatives = all.filter(g => g === '1').length;
-      const decision = negatives <= 3 ? 'sme' : 'ne sme';
-      const ref = 'REF-' + Date.now();
-
-      const fs = 12;
-      page.drawText(`${s.name} ${s.surname}`, { x: 120, y: 670, size: fs, font });
-      page.drawText(grades.a.join(', ') || '-', { x: 220, y: 535, size: fs, font });
-      page.drawText(grades.b.join(', ') || '-', { x: 220, y: 505, size: fs, font });
-      page.drawText(grades.c.join(', ') || '-', { x: 220, y: 475, size: fs, font });
-      page.drawText(finalRaw || '-', { x: 220, y: 445, size: fs, font });
-      page.drawText(String(negatives), { x: 330, y: 390, size: fs, font });
-      page.drawText(decision, { x: 240, y: 360, size: fs, font });
-      page.drawText(`${s.name} ${s.surname}`, { x: 210, y: 330, size: fs, font });
-      page.drawText(uspeh, { x: 200, y: 300, size: fs, font });
-      page.drawText(ref, { x: 150, y: 265, size: 10, font });
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const urlBlob = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = urlBlob;
-      a.download = `${s.name}_${s.surname}_OOC.pdf`;
-      a.click();
-
-      URL.revokeObjectURL(urlBlob);
-
-    } catch (e) {
-      alert('Napaka pri generiranju PDF-ja: ' + e.message);
-      console.error(e);
     }
-  };
 
-  // Zavihek menjava
-  $$$('.tab-btn').forEach(btn => btn.onclick = () => {
-    $$$('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    $$$('.page').forEach(p => p.classList.remove('active'));
-    $(`#${btn.dataset.tab}`).classList.add('active');
-  });
+    function closeDialog() {
+      overlay.style.display = 'none';
+      dialog.style.display = 'none';
+      content.innerHTML = '';
+      activeStudent = -1;
+      activeType = '';
+    }
 
-  renderTable();
-};
+    $$('#cancelBtn').onclick = closeDialog;
+    $$('#saveBtn').onclick = () => {
+      const sel = document.querySelector('input[name="gradeVal"]:checked');
+      if (!sel) {
+        alert('Izberi oceno!');
+        return;
+      }
+      const val = sel.value;
+      if (activeType === 'final') {
+        students[activeStudent].final = `<span class="black">${val}</span>`;
+      } else {
+        const colour = $$('#gradeType').value;
+        const formatted = `<span class="${colour}">${val}</span>`;
+        students[activeStudent][activeType].push(formatted);
+      }
+      closeDialog();
+      renderTable();
+    };
+    overlay.onclick = closeDialog;
+
+    window.downloadOOC = async i => {
+      try {
+        // Naloži predlogo PDF
+        const url = 'OOC.pdf';
+        const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+
+        // Naloži PDF document
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+
+        // Preveri fontkit
+        if (!window.fontkit) {
+          alert("Fontkit ni naložen!");
+          return;
+        }
+        pdfDoc.registerFontkit(window.fontkit);
+
+        // Naloži pisavo iz lokalne datoteke
+        const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
+        const font = await pdfDoc.embedFont(fontBytes);
+
+        const page = pdfDoc.getPage(0);
+        const s = students[i];
+
+        // Ocene brez HTML oznak
+        const grades = {
+          a: s.a.map(g => g.replace(/<[^>]*>/g, '')).join(', '),
+          b: s.b.map(g => g.replace(/<[^>]*>/g, '')).join(', '),
+          c: s.c.map(g => g.replace(/<[^>]*>/g, '')).join(', '),
+          final: s.final.replace(/<[^>]*>/g, '')
+        };
+
+        // Vpiši podatke v PDF (primer koordinat)
+        page.drawText(`Ime: ${s.name}`, { x: 50, y: 700, size: 12, font });
+        page.drawText(`Priimek: ${s.surname}`, { x: 50, y: 680, size: 12, font });
+        page.drawText(`Skupina A: ${grades.a}`, { x: 50, y: 660, size: 12, font });
+        page.drawText(`Skupina B: ${grades.b}`, { x: 50, y: 640, size: 12, font });
+        page.drawText(`Skupina C: ${grades.c}`, { x: 50, y: 620, size: 12, font });
+        page.drawText(`Končna ocena: ${grades.final}`, { x: 50, y: 600, size: 14, font });
+
+        // Shrani nov pdf
+        const pdfBytes = await pdfDoc.save();
+
+        // Ustvari download
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const urlBlob = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = urlBlob;
+        a.download = `${s.name}_${s.surname}_OOC.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(urlBlob);
+      } catch (e) {
+        alert("Napaka pri generiranju PDF-ja: " + e.message);
+      }
+    };
+
+    // Tabbing med stranmi
+    $$$('nav button.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        $$$('nav button.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        $$$('.page').forEach(p => p.classList.remove('active'));
+        const tab = btn.getAttribute('data-tab');
+        $$('#' + tab).classList.add('active');
+      };
+    });
+
+    renderTable();
+  })();
 </script>
 </body>
 </html>
