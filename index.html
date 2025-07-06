@@ -101,6 +101,7 @@
       div.className = 'student-item';
       div.innerHTML = `<span>${s.name} ${s.surname}</span>` +
         `<button onclick="downloadOOC(${i})">OOC</button>` +
+        `<button onclick="downloadSpricevalo(${i})">Spričevalo</button>` +
         `<button onclick="removeStudent(${i})">Izbriši</button>`;
       list.appendChild(div);
     });
@@ -117,98 +118,55 @@
     }
   };
 
-  window.removeStudent = index => {
-    students.splice(index, 1);
-    renderTable();
-  };
-
-  const overlay = $$('#overlay');
-  const dialog = $$('#dialog');
-  const content = $$('#dialogContent');
-  let activeStudent = -1, activeType = '';
-
-  function openDialog(index, type) {
-    activeStudent = index; activeType = type;
-    overlay.style.display = 'block';
-    dialog.style.display = 'block';
-    const s = students[index];
-    if (type === 'final') {
-      const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
-      const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
-      content.innerHTML = `<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>` +
-        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('') +
-        `<div><input type="radio" name="gradeVal" id="gN" value="N"> <label for="gN">N</label></div>`;
-    } else {
-      content.innerHTML = `<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>` +
-        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
-    }
-  }
-
-  function closeDialog() {
-    overlay.style.display = 'none';
-    dialog.style.display = 'none';
-    content.innerHTML = '';
-    activeStudent = -1;
-    activeType = '';
-  }
-
-  $$('#cancelBtn').onclick = closeDialog;
-  $$('#saveBtn').onclick = () => {
-    const sel = document.querySelector('input[name="gradeVal"]:checked');
-    if (!sel) { alert('Izberi oceno!'); return; }
-    const val = sel.value;
-    if (activeType === 'final') {
-      students[activeStudent].final = `<span class="black">${val}</span>`;
-    } else {
-      const colour = $$('#gradeType').value;
-      const formatted = `<span class="${colour}">${val}</span>`;
-      students[activeStudent][activeType].push(formatted);
-    }
-    closeDialog();
-    renderTable();
-  };
-  overlay.onclick = closeDialog;
-
-  window.downloadOOC = async i => {
+  window.downloadSpricevalo = async i => {
     try {
       const mmToPt = mm => mm * 2.83465;
-      const pdfDoc = await PDFLib.PDFDocument.load(await fetch('OOC.pdf').then(res => res.arrayBuffer()));
+      const pdfDoc = await PDFLib.PDFDocument.load(await fetch('SPRICEVALO.pdf').then(res => res.arrayBuffer()));
       const page = pdfDoc.getPage(0);
       const s = students[i];
-      const grades = { a: s.a.map(g => g.replace(/<[^>]+>/g, '')), b: s.b.map(g => g.replace(/<[^>]+>/g, '')), c: s.c.map(g => g.replace(/<[^>]+>/g, '')) };
+      const allGrades = type => s[type].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
+      const avg = arr => arr.length ? (arr.reduce((a,b) => a+b,0)/arr.length).toFixed(2) : '-';
+
+      const avgA = avg(allGrades('a'));
+      const avgB = avg(allGrades('b'));
+      const avgC = avg(allGrades('c'));
       const finalRaw = s.final.replace(/<[^>]+>/g, '');
-      let uspeh = 'se ni dolocil';
+
+      let uspeh = 'ni ocenjen';
       switch (finalRaw) {
-        case '1': uspeh = 'nezadosten (1)'; break;
-        case '2': uspeh = 'zadosten (2)'; break;
-        case '3': uspeh = 'dober (3)'; break;
-        case '4': uspeh = 'prav dober (4)'; break;
-        case '5': uspeh = 'odlicen (5)'; break;
-        case 'N': uspeh = 'ne ocenjen'; break;
+        case '1': uspeh = 'nezadostno (1)'; break;
+        case '2': uspeh = 'zadostno (2)'; break;
+        case '3': uspeh = 'dobro (3)'; break;
+        case '4': uspeh = 'prav dobro (4)'; break;
+        case '5': uspeh = 'odlicno (5)'; break;
       }
-      const all = [...grades.a, ...grades.b, ...grades.c];
-      const negatives = all.filter(g => g === '1').length;
-      const decision = negatives <= 3 ? 'sme' : 'ne sme';
+
+      const sklopiCount = ['a','b','c'].filter(k => allGrades(k).length > 0).length;
+      const uspesno = (finalRaw === '2' || finalRaw === '3' || finalRaw === '4' || finalRaw === '5') ? 'uspesno' : 'neuspesno';
+      const napreduje = (finalRaw === '2' || finalRaw === '3' || finalRaw === '4' || finalRaw === '5') ? 'napreduje' : 'ne napreduje';
       const ref = 'REF-' + Date.now();
+
       const fs = 12;
-      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(104.6), y: mmToPt(297 - 54.3), size: fs });
-      page.drawText(grades.a.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 104.6), size: fs });
-      page.drawText(grades.b.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 125.4), size: fs });
-      page.drawText(grades.c.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 145.7), size: fs });
-      page.drawText(finalRaw || '-', { x: mmToPt(104.8), y: mmToPt(297 - 165.6), size: fs });
-      page.drawText(String(negatives), { x: mmToPt(170), y: mmToPt(297 - 190.5), size: fs });
-      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(139.9), y: mmToPt(297 - 202.7), size: fs });
-      page.drawText(decision, { x: mmToPt(45), y: mmToPt(297 - 216.4), size: fs });
-      page.drawText(uspeh, { x: mmToPt(129.8), y: mmToPt(297 - 238.8), size: fs });
-      page.drawText(ref, { x: mmToPt(39.9), y: mmToPt(297 - 263.9), size: 10 });
+      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(105), y: mmToPt(297 - 76.7), size: fs });
+      page.drawText(avgA, { x: mmToPt(70), y: mmToPt(297 - 106.2), size: fs });
+      page.drawText(avgB, { x: mmToPt(70), y: mmToPt(297 - 115.2), size: fs });
+      page.drawText(avgC, { x: mmToPt(70), y: mmToPt(297 - 124.2), size: fs });
+      page.drawText(uspeh, { x: mmToPt(98.9), y: mmToPt(297 - 151.2), size: fs });
+      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(138.3), y: mmToPt(297 - 166.9), size: fs });
+      page.drawText(String(sklopiCount), { x: mmToPt(178), y: mmToPt(297 - 166.9), size: fs });
+      page.drawText(uspesno, { x: mmToPt(73.2), y: mmToPt(297 - 173.6), size: fs });
+      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(119.5), y: mmToPt(297 - 191.5), size: fs });
+      page.drawText(napreduje, { x: mmToPt(168.8), y: mmToPt(297 - 191.5), size: fs });
+      page.drawText(ref, { x: mmToPt(37), y: mmToPt(297 - 242.8), size: fs });
+
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `OOC_${s.name}_${s.surname}.pdf`;
+      link.download = `SPRICEVALO_${s.name}_${s.surname}.pdf`;
       link.click();
     } catch (err) {
-      alert('Napaka pri generiranju PDF-ja: ' + err.message);
+      alert('Napaka pri generiranju spričevala: ' + err.message);
     }
   };
 
