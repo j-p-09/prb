@@ -2,223 +2,56 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8" />
-  <title>E-redovalnica</title>
-  <script src="./pdf-lib.min.js"></script>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OOC PDF Generator</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
-    nav { display: flex; background: #333; color: #fff; }
-    nav button { flex: 1; padding: 15px; border: none; background: #333; color: #fff; font-weight: bold; cursor: pointer; }
-    nav button.active { background: #555; }
-    .page { display: none; padding: 20px; }
-    .page.active { display: block; }
-    table { width: 100%; border-collapse: collapse; background: #fff; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-    th { background: #eee; }
-    .student-name { font-weight: bold; }
-    .student-surname { display: block; font-weight: normal; }
-    .blue { color: #0066cc; font-weight: bold; }
-    .red { color: #cc0000; font-weight: bold; }
-    .black { color: #000; font-weight: bold; font-size: 1.2em; }
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 5; }
-    .dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,.3); z-index: 10; min-width: 260px; }
-    .dialog h3 { margin-top: 0; }
-    .dialog .bottom-bar { display: flex; justify-content: space-between; margin-top: 15px; }
-    .dialog button { padding: 6px 12px; cursor: pointer; }
-    .student-list { background: #fff; padding: 10px; }
-    .student-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .student-item span { flex: 1; }
-    input[type=text] { padding: 6px; margin-right: 8px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-<nav>
-  <button class="tab-btn active" data-tab="redovalnica">Redovalnica</button>
-  <button class="tab-btn" data-tab="nastavitve">Nastavitve</button>
-</nav>
-<div id="redovalnica" class="page active">
-  <table id="gradeTable">
-    <thead>
-      <tr><th>UČENEC</th><th>SKLOP A</th><th>SKLOP B</th><th>SKLOP C</th><th>KONEC</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-<div id="nastavitve" class="page">
-  <h2>Seznam učencev</h2>
-  <div id="studentList" class="student-list"></div>
-  <h3>Dodaj novega učenca</h3>
-  <input id="newName" type="text" placeholder="Ime" />
-  <input id="newSurname" type="text" placeholder="Priimek" />
-  <button id="addBtn">Dodaj</button>
-</div>
-<div id="overlay" class="overlay"></div>
-<div id="dialog" class="dialog">
-  <div id="dialogContent"></div>
-  <div class="bottom-bar">
-    <button id="cancelBtn">Prekliči</button>
-    <button id="saveBtn">Shrani oceno</button>
-  </div>
-</div>
-<script>
-(async () => {
-  const students = JSON.parse(localStorage.getItem("students") || "[]");
-  const $$ = sel => document.querySelector(sel);
-  const $$$ = sel => document.querySelectorAll(sel);
 
-  function saveStudents() {
-    localStorage.setItem("students", JSON.stringify(students));
-  }
+  <h1>Generiranje OOC PDF</h1>
+  <div id="students-list"></div>
 
-  function renderTable() {
-    const tbody = $$('#gradeTable tbody');
-    tbody.innerHTML = '';
-    students.forEach((s, i) => {
-      const tr = document.createElement('tr');
-      const tdName = document.createElement('td');
-      tdName.innerHTML = `<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
-      tr.appendChild(tdName);
-      ['a', 'b', 'c'].forEach(sk => {
-        const td = document.createElement('td');
-        td.innerHTML = (s[sk] || []).join(', ');
-        td.onclick = () => openDialog(i, sk);
-        tr.appendChild(td);
-      });
-      const tdFinal = document.createElement('td');
-      tdFinal.innerHTML = s.final || '';
-      tdFinal.onclick = () => openDialog(i, 'final');
-      tr.appendChild(tdFinal);
-      tbody.appendChild(tr);
-    });
-    renderStudentList();
-    saveStudents();
-  }
+  <!-- Vključi pdf-lib in fontkit -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
 
-  function renderStudentList() {
-    const list = $$('#studentList');
-    list.innerHTML = '';
-    students.forEach((s, i) => {
-      const div = document.createElement('div');
-      div.className = 'student-item';
-      div.innerHTML = `<span>${s.name} ${s.surname}</span>` +
-        `<button onclick="downloadOOC(${i})">OOC</button>` +
-        `<button onclick="removeStudent(${i})">Izbriši</button>`;
-      list.appendChild(div);
-    });
-  }
+  <script>
+    // Registriraj fontkit, da pdf-lib lahko uporablja custom font
+    window.fontkit = window.fontkit;
 
-  $$('#addBtn').onclick = () => {
-    const name = $$('#newName').value.trim();
-    const surname = $$('#newSurname').value.trim();
-    if (name && surname) {
-      students.push({ name, surname, a: [], b: [], c: [], final: '' });
-      $$('#newName').value = '';
-      $$('#newSurname').value = '';
-      renderTable();
-    }
-  };
+    // Primer podatkov - ta array boš kasneje polnil s pravimi podatki
+    const students = [
+      {
+        name: "Janez",
+        surname: "Novak",
+        a: ["3", "4", "5"],
+        b: ["2", "3", "4"],
+        c: ["5", "5", "4"],
+        final: "5"
+      },
+      {
+        name: "Maja",
+        surname: "Kranjc",
+        a: ["2", "2", "3"],
+        b: ["3", "3", "4"],
+        c: ["4", "4", "3"],
+        final: "4"
+      }
+    ];
 
-  window.removeStudent = index => {
-    students.splice(index, 1);
-    renderTable();
-  };
-
-  const overlay = $$('#overlay');
-  const dialog = $$('#dialog');
-  const content = $$('#dialogContent');
-  let activeStudent = -1, activeType = '';
-
-  function openDialog(index, type) {
-    activeStudent = index; activeType = type;
-    overlay.style.display = 'block';
-    dialog.style.display = 'block';
-    const s = students[index];
-    if (type === 'final') {
-      const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
-      const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
-      content.innerHTML = `<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>` +
-        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('') +
-        `<div><input type="radio" name="gradeVal" id="gN" value="N"> <label for="gN">N</label></div>`;
-    } else {
-      content.innerHTML = `<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>` +
-        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
-    }
-  }
-
-  function closeDialog() {
-    overlay.style.display = 'none';
-    dialog.style.display = 'none';
-    content.innerHTML = '';
-    activeStudent = -1;
-    activeType = '';
-  }
-
-  $$('#cancelBtn').onclick = closeDialog;
-  $$('#saveBtn').onclick = () => {
-    const sel = document.querySelector('input[name="gradeVal"]:checked');
-    if (!sel) { alert('Izberi oceno!'); return; }
-    const val = sel.value;
-    if (activeType === 'final') {
-      students[activeStudent].final = `<span class="black">${val}</span>`;
-    } else {
-      const colour = $$('#gradeType').value;
-      const formatted = `<span class="${colour}">${val}</span>`;
-      students[activeStudent][activeType].push(formatted);
-    }
-    closeDialog();
-    renderTable();
-  };
-  overlay.onclick = closeDialog;
-
-  $$$('.tab-btn').forEach(btn => btn.onclick = () => {
-    $$$('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    $$$('.page').forEach(p => p.classList.remove('active'));
-    $$('#' + btn.dataset.tab).classList.add('active');
-  });
-
-  renderTable();
-})();
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-async function downloadOOC(index) {
-  const { jsPDF } = window.jspdf;
-  const s = JSON.parse(localStorage.getItem("students") || "[]")[index];
-  if (!s) {
-    alert('Študent ni najden');
-    return;
-  }
-  const doc = new jsPDF();
-
-  // Uporabi standardno Times pisavo (brez potrebe po fontkit ali dodatnih fontih)
-  doc.setFont("times", "normal");
-
-  let y = 20;
-  doc.setFontSize(16);
-  doc.text(`Potrdilo o oceni`, 105, y, null, null, "center");
-
-  y += 15;
-  doc.setFontSize(12);
-  doc.text(`Ime: ${s.name}`, 20, y);
-  y += 8;
-  doc.text(`Priimek: ${s.surname}`, 20, y);
-
-  y += 12;
-  doc.text(`Ocene:`, 20, y);
-  y += 8;
-
-  const formatGrades = arr => arr.map(g => g.replace(/<[^>]+>/g, '')).join(', ') || '–';
-
-  doc.text(`Ustne ocene (a): ${formatGrades(s.a)}`, 20, y);
-  y += 8;
-  doc.text(`Pisne ocene (b): ${formatGrades(s.b)}`, 20, y);
-  y += 8;
-  doc.text(`Izdelki (c): ${formatGrades(s.c)}`, 20, y);
-  y += 12;
-
-  doc.text(`Končna ocena: ${s.final ? s.final.replace(/<[^>]+>/g, '') : '–'}`, 20, y);
-
-  doc.save(`${s.name}_${s.surname}_OOC.pdf`);
-}
-</script>
+    // Tu bomo kasneje dodali funkcijo downloadOOC in ostale funkcionalnosti
+  </script>
+</body>
 </html>
