@@ -3,13 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>E-redovalnica</title>
-
-  <!-- pdf-lib knjižnica iz CDN -->
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-  
-  <!-- fontkit iz CDN -->
-  <script src="https://unpkg.com/fontkit@latest/dist/fontkit.min.js"></script>
-
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4 }
     nav { display: flex; background: #333; color: #fff }
@@ -53,8 +46,8 @@
   <h2>Seznam učencev</h2>
   <div id="studentList" class="student-list"></div>
   <h3>Dodaj novega učenca</h3>
-  <input id="newName"  type="text" placeholder="Ime">
-  <input id="newSurname" type="text" placeholder="Priimek">
+  <input id="newName"  type="text" placeholder="Ime" />
+  <input id="newSurname" type="text" placeholder="Priimek" />
   <button id="addBtn">Dodaj</button>
 </div>
 <div id="overlay" class="overlay"></div>
@@ -65,6 +58,11 @@
     <button id="saveBtn">Shrani oceno</button>
   </div>
 </div>
+
+<!-- Pravilna vključitev pdf-lib in fontkit preko CDN -->
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/fontkit@latest/dist/fontkit.min.js"></script>
+
 <script>
 (async () => {
   const students = JSON.parse(localStorage.getItem("students") || "[]");
@@ -177,7 +175,7 @@
 
   window.downloadOOC = async i => {
     try {
-      const url = 'OOC.pdf';
+      const url = 'OOC.pdf'; // Tvoj predloga PDF - lahko zamenjaš po potrebi
       const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
 
