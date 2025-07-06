@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="sl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>E‑redovalnica</title>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
-    nav{display:flex;background:#333}
+    nav{display:flex;background:#333;color:#fff}
     nav button{flex:1;padding:15px;border:none;background:#333;color:#fff;font-weight:bold;cursor:pointer}
     nav button.active{background:#555}
     .page{display:none;padding:20px}
@@ -36,7 +36,6 @@
   <button class="tab-btn" data-tab="nastavitve">Nastavitve</button>
 </nav>
 
-<!-- Stran redovalnica -->
 <div id="redovalnica" class="page active">
   <table id="gradeTable">
     <thead>
@@ -46,17 +45,15 @@
   </table>
 </div>
 
-<!-- Stran nastavitve -->
 <div id="nastavitve" class="page">
   <h2>Seznam učencev</h2>
   <div id="studentList" class="student-list"></div>
   <h3>Dodaj novega učenca</h3>
-  <input id="newName"  type="text" placeholder="Ime" />
-  <input id="newSurname" type="text" placeholder="Priimek" />
+  <input id="newName"  type="text" placeholder="Ime">
+  <input id="newSurname" type="text" placeholder="Priimek">
   <button id="addBtn">Dodaj</button>
 </div>
 
-<!-- Dialog za ocene -->
 <div id="overlay" class="overlay"></div>
 <div id="dialog" class="dialog">
   <div id="dialogContent"></div>
@@ -67,143 +64,110 @@
 </div>
 
 <script>
-(async () => {
-  const students = [];                       // seznam učencev
-  const $$ = sel => document.querySelector(sel);
-  const $$$ = sel => document.querySelectorAll(sel);
-  const pdfUrl = './OOC.pdf';                // predloga v isti mapi
+(async()=>{
+  const students=[];
+  const $$=sel=>document.querySelector(sel);
+  const $$$=sel=>document.querySelectorAll(sel);
 
-  // pretvori milimetre v PDF‑točke
-  const mm = v => v * 2.83465;
-
-  // ========== RISANJE TABEL ==========
-  function renderTable() {
-    const tbody = $$('#gradeTable tbody');
-    tbody.innerHTML = '';
-    students.forEach((s, i) => {
-      const tr = document.createElement('tr');
-
-      const tdName = document.createElement('td');
-      tdName.innerHTML = `<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
+  function renderTable(){
+    const tbody=$$('#gradeTable tbody');
+    tbody.innerHTML='';
+    students.forEach((s,i)=>{
+      const tr=document.createElement('tr');
+      const tdName=document.createElement('td');
+      tdName.innerHTML=`<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
       tr.appendChild(tdName);
-
-      ['a', 'b', 'c'].forEach(sk => {
-        const td = document.createElement('td');
-        td.innerHTML = (s[sk] || []).join(', ');
-        td.onclick = () => openDialog(i, sk);
+      ['a','b','c'].forEach(sk=>{
+        const td=document.createElement('td');
+        td.innerHTML=(s[sk]||[]).join(', ');
+        td.onclick=()=>openDialog(i,sk);
         tr.appendChild(td);
       });
-
-      const tdFinal = document.createElement('td');
-      tdFinal.innerHTML = s.final || '';
-      tdFinal.onclick = () => openDialog(i, 'final');
+      const tdFinal=document.createElement('td');
+      tdFinal.innerHTML=s.final||'';
+      tdFinal.onclick=()=>openDialog(i,'final');
       tr.appendChild(tdFinal);
       tbody.appendChild(tr);
     });
     renderStudentList();
   }
 
-  // ========== SEZNAM UČENCEV ==========
-  function renderStudentList() {
-    const list = $$('#studentList');
-    list.innerHTML = '';
-    students.forEach((s, i) => {
-      const div = document.createElement('div');
-      div.className = 'student-item';
-      div.innerHTML = `<span>${s.name} ${s.surname}</span>`;
-      
-      const btnOOC = document.createElement('button');
-      btnOOC.textContent = 'OOC';
-      btnOOC.onclick = () => downloadOOC(i);
-
-      const btnDel = document.createElement('button');
-      btnDel.textContent = 'Izbriši';
-      btnDel.onclick = () => { students.splice(i, 1); renderTable(); };
-
-      div.appendChild(btnOOC);
-      div.appendChild(btnDel);
+  function renderStudentList(){
+    const list=$$('#studentList');
+    list.innerHTML='';
+    students.forEach((s,i)=>{
+      const div=document.createElement('div');
+      div.className='student-item';
+      div.innerHTML=`<span>${s.name} ${s.surname}</span>`+
+        `<button onclick="downloadOOC(${i})">OOC</button>`+
+        `<button onclick="removeStudent(${i})">Izbriši</button>`;
       list.appendChild(div);
     });
   }
 
-  // ========== DODAJANJE UČENCA ==========
-  $$('#addBtn').onclick = () => {
-    const name = $$('#newName').value.trim();
-    const surname = $$('#newSurname').value.trim();
-    if (name && surname) {
-      students.push({ name, surname, a: [], b: [], c: [], final: '' });
-      $$('#newName').value = '';
-      $$('#newSurname').value = '';
+  $$('#addBtn').onclick=()=>{
+    const name=$$('#newName').value.trim();
+    const surname=$$('#newSurname').value.trim();
+    if(name&&surname){
+      students.push({name,surname,a:[],b:[],c:[],final:''});
+      $$('#newName').value='';
+      $$('#newSurname').value='';
       renderTable();
     }
   };
 
-  // ========== DIALOG ZA OCENE ==========
-  const overlay = $$('#overlay');
-  const dialog = $$('#dialog');
-  const content = $$('#dialogContent');
-  let activeStudent = -1, activeType = '';
+  window.removeStudent=index=>{students.splice(index,1);renderTable();};
 
-  function openDialog(index, type) {
-    activeStudent = index;
-    activeType = type;
-    overlay.style.display = 'block';
-    dialog.style.display = 'block';
+  const overlay=$$('#overlay');
+  const dialog=$$('#dialog');
+  const content=$$('#dialogContent');
+  let activeStudent=-1,activeType='';
 
-    if (type === 'final') {
-      const s = students[index];
-      const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
-      const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
-      content.innerHTML =
-        `<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>` +
-        [1, 2, 3, 4, 5].map(n =>
-          `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`
-        ).join('');
-    } else {
-      content.innerHTML =
-        `<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType">
-          <option value="blue">Ustna ocena</option>
-          <option value="red">Pisna ocena</option>
-          <option value="blue">Izdelek</option>
-        </select>` +
-        [1, 2, 3, 4, 5].map(n =>
-          `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`
-        ).join('');
+  function openDialog(index,type){
+    activeStudent=index;activeType=type;
+    overlay.style.display='block';
+    dialog.style.display='block';
+    if(type==='final'){
+      const s=students[index];
+      const numGrades=[...s.a,...s.b,...s.c].map(g=>parseInt(g.replace(/<[^>]+>/g,''))).filter(n=>!isNaN(n));
+      const avg=numGrades.length?(numGrades.reduce((a,b)=>a+b,0)/numGrades.length).toFixed(2):'–';
+      content.innerHTML=`<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>`+
+        [1,2,3,4,5].map(n=>`<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
+    }else{
+      content.innerHTML=`<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>`+
+        [1,2,3,4,5].map(n=>`<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
     }
   }
 
-  function closeDialog() {
-    overlay.style.display = 'none';
-    dialog.style.display = 'none';
-    content.innerHTML = '';
-    activeStudent = -1;
-    activeType = '';
-  }
-  $$('#cancelBtn').onclick = closeDialog;
-  $$('#saveBtn').onclick = () => {
-    const sel = document.querySelector('input[name="gradeVal"]:checked');
-    if (!sel) { alert('Izberi oceno!'); return; }
-    const val = sel.value;
-    if (activeType === 'final') {
-      students[activeStudent].final = `<span class="black">${val}</span>`;
-    } else {
-      const colour = $$('#gradeType').value;
-      students[activeStudent][activeType].push(`<span class="${colour}">${val}</span>`);
+  function closeDialog(){overlay.style.display='none';dialog.style.display='none';content.innerHTML='';activeStudent=-1;activeType='';}
+  $$('#cancelBtn').onclick=closeDialog;
+
+  $$('#saveBtn').onclick=()=>{
+    const sel=document.querySelector('input[name="gradeVal"]:checked');
+    if(!sel){alert('Izberi oceno!');return;}
+    const val=sel.value;
+    if(activeType==='final'){
+      students[activeStudent].final=`<span class="black">${val}</span>`;
+    }else{
+      const colour=$$('#gradeType').value;
+      const formatted=`<span class="${colour}">${val}</span>`;
+      students[activeStudent][activeType].push(formatted);
     }
-    closeDialog();
-    renderTable();
+    closeDialog();renderTable();
   };
-  overlay.onclick = closeDialog;
 
-  // ========== PRENOS & IZPOLNITEV PDF ==========
-  async function downloadOOC(i) {
+  overlay.onclick=closeDialog;
+
+  // PDF generacija z Unicode podporo
+  window.downloadOOC = async i => {
     try {
-      const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+      const existingPdfBytes = await fetch('OOC.pdf').then(res => res.arrayBuffer());
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
       const page = pdfDoc.getPage(0);
-      const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-      const s = students[i];
 
+      const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+      const s = students[i];
       const grades = {
         a: s.a.map(g => g.replace(/<[^>]+>/g, '')),
         b: s.b.map(g => g.replace(/<[^>]+>/g, '')),
@@ -215,43 +179,39 @@
       const decision = negatives === 0 ? 'sme' : 'ne sme';
       const ref = 'REF-' + Date.now();
 
-      // koordinate v mm pretvorjene v pts
-      page.drawText(`${s.name} ${s.surname}`, { x: mm(105.3), y: mm(53.2), size: 12, font });
-      page.drawText(grades.a.join(', '),   { x: mm(110.7), y: mm(102.7), size: 12, font });
-      page.drawText(grades.b.join(', '),   { x: mm(113.9), y: mm(124.9), size: 12, font });
-      page.drawText(grades.c.join(', '),   { x: mm(105.6), y: mm(145.0), size: 12, font });
-      page.drawText(final || '-',          { x: mm(109.1), y: mm(165.6), size: 12, font });
-      page.drawText(String(negatives),     { x: mm(169.5), y: mm(189.2), size: 12, font });
-      page.drawText(`${s.name} ${s.surname}`, { x: mm(137.3), y: mm(202.8), size: 12, font });
-      page.drawText(decision,              { x: mm(44.4),  y: mm(216.2), size: 12, font });
-      page.drawText('še ni določen',       { x: mm(128.9), y: mm(238.3), size: 12, font });
-      page.drawText(ref,                   { x: mm(38.1),  y: mm(263.6), size: 10, font });
+      const mm = mm => mm * 2.83465;
+      const y = mm => 842 - mm; // invert Y
+
+      page.drawText(`${s.name} ${s.surname}`, { x: mm(105.3), y: y(53.2), size: 12, font: helveticaFont });
+      page.drawText(grades.a.join(', '), { x: mm(110.7), y: y(102.7), size: 12, font: helveticaFont });
+      page.drawText(grades.b.join(', '), { x: mm(113.9), y: y(124.9), size: 12, font: helveticaFont });
+      page.drawText(grades.c.join(', '), { x: mm(105.6), y: y(145), size: 12, font: helveticaFont });
+      page.drawText(final || '-', { x: mm(109.1), y: y(165.6), size: 12, font: helveticaFont });
+      page.drawText(String(negatives), { x: mm(169.5), y: y(189.2), size: 12, font: helveticaFont });
+      page.drawText(`${s.name} ${s.surname}`, { x: mm(137.3), y: y(202.8), size: 12, font: helveticaFont });
+      page.drawText(decision, { x: mm(44.4), y: y(216.2), size: 12, font: helveticaFont });
+      page.drawText('še ni določen', { x: mm(128.9), y: y(238.3), size: 12, font: helveticaFont });
+      page.drawText(ref, { x: mm(38.1), y: y(263.6), size: 10, font: helveticaFont });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `OOC_${s.name}_${s.surname}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('Napaka pri generiranju PDF‑ja: ' + err.message);
-      console.error(err);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `OOC_${s.name}_${s.surname}.pdf`;
+      link.click();
+    } catch (e) {
+      alert('Napaka pri generiranju PDF‑ja: ' + e.message);
     }
-  }
+  };
 
-  // ========== PREKLOP TABOV ==========
-  $$$('.tab-btn').forEach(btn => btn.onclick = () => {
-    $$$('.tab-btn').forEach(b => b.classList.remove('active'));
+  $$$('.tab-btn').forEach(btn=>btn.onclick=()=>{
+    $$$('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    $$$('.page').forEach(p => p.classList.remove('active'));
-    $$('#' + btn.dataset.tab).classList.add('active');
+    $$$('.page').forEach(p=>p.classList.remove('active'));
+    $$('#'+btn.dataset.tab).classList.add('active');
   });
 
-  renderTable(); // inicialni render
+  renderTable();
 })();
 </script>
 </body>
