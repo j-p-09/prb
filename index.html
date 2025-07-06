@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>E-redovalnica</title>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
@@ -32,31 +32,31 @@
 </head>
 <body>
 <nav>
-  <button class="tab-btn active" data-tab="gradebook">Gradebook</button>
-  <button class="tab-btn" data-tab="settings">Settings</button>
+  <button class="tab-btn active" data-tab="redovalnica">Redovalnica</button>
+  <button class="tab-btn" data-tab="nastavitve">Nastavitve</button>
 </nav>
-<div id="gradebook" class="page active">
+<div id="redovalnica" class="page active">
   <table id="gradeTable">
     <thead>
-      <tr><th>STUDENT</th><th>GROUP A</th><th>GROUP B</th><th>GROUP C</th><th>FINAL</th></tr>
+      <tr><th>UČenec</th><th>SKLOP A</th><th>SKLOP B</th><th>SKLOP C</th><th>KONEC</th></tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
-<div id="settings" class="page">
-  <h2>Student List</h2>
+<div id="nastavitve" class="page">
+  <h2>Seznam učencev</h2>
   <div id="studentList" class="student-list"></div>
-  <h3>Add New Student</h3>
-  <input id="newName"  type="text" placeholder="Name" />
-  <input id="newSurname" type="text" placeholder="Surname" />
-  <button id="addBtn">Add</button>
+  <h3>Dodaj novega učenca</h3>
+  <input id="newName" type="text" placeholder="Ime">
+  <input id="newSurname" type="text" placeholder="Priimek">
+  <button id="addBtn">Dodaj</button>
 </div>
 <div id="overlay" class="overlay"></div>
 <div id="dialog" class="dialog">
   <div id="dialogContent"></div>
   <div class="bottom-bar">
-    <button id="cancelBtn">Cancel</button>
-    <button id="saveBtn">Save Grade</button>
+    <button id="cancelBtn">Prekliči</button>
+    <button id="saveBtn">Shrani oceno</button>
   </div>
 </div>
 <script>
@@ -100,8 +100,8 @@
       const div = document.createElement('div');
       div.className = 'student-item';
       div.innerHTML = `<span>${s.name} ${s.surname}</span>` +
-        `<button onclick="downloadPDF(${i})">PDF</button>` +
-        `<button onclick="removeStudent(${i})">Delete</button>`;
+        `<button onclick="downloadOOC(${i})">OOC</button>` +
+        `<button onclick="removeStudent(${i})">Izbriši</button>`;
       list.appendChild(div);
     });
   }
@@ -135,11 +135,11 @@
     if (type === 'final') {
       const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
       const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
-      content.innerHTML = `<h3>Final Grade</h3><p>Average: ${avg}</p>` +
+      content.innerHTML = `<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>` +
         [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('') +
         `<div><input type="radio" name="gradeVal" id="gN" value="N"> <label for="gN">N</label></div>`;
     } else {
-      content.innerHTML = `<h3>Enter Grade</h3><label>Grade Type:</label><select id="gradeType"><option value="blue">Oral</option><option value="red">Written</option><option value="blue">Product</option></select>` +
+      content.innerHTML = `<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>` +
         [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
     }
   }
@@ -155,7 +155,7 @@
   $$('#cancelBtn').onclick = closeDialog;
   $$('#saveBtn').onclick = () => {
     const sel = document.querySelector('input[name="gradeVal"]:checked');
-    if (!sel) { alert('Select a grade!'); return; }
+    if (!sel) { alert('Izberi oceno!'); return; }
     const val = sel.value;
     if (activeType === 'final') {
       students[activeStudent].final = `<span class="black">${val}</span>`;
@@ -169,34 +169,32 @@
   };
   overlay.onclick = closeDialog;
 
-  window.downloadPDF = async i => {
+  window.downloadOOC = async i => {
     try {
-      const pdfDoc = await PDFLib.PDFDocument.create();
-
-      const page = pdfDoc.addPage([600, 750]);
+      const url = 'OOC.pdf';
+      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+      const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+      const page = pdfDoc.getPage(0);
       const s = students[i];
       const grades = {
         a: s.a.map(g => g.replace(/<[^>]+>/g, '')),
         b: s.b.map(g => g.replace(/<[^>]+>/g, '')),
         c: s.c.map(g => g.replace(/<[^>]+>/g, ''))
       };
-
       const finalRaw = s.final.replace(/<[^>]+>/g, '');
-      let success = 'not defined yet';
+      let uspeh = 'se ni dolocil';
       switch (finalRaw) {
-        case '1': success = 'fail (1)'; break;
-        case '2': success = 'pass (2)'; break;
-        case '3': success = 'good (3)'; break;
-        case '4': success = 'very good (4)'; break;
-        case '5': success = 'excellent (5)'; break;
-        case 'N': success = 'not graded'; break;
+        case '1': uspeh = 'nezadosten (1)'; break;
+        case '2': uspeh = 'zadosten (2)'; break;
+        case '3': uspeh = 'dober (3)'; break;
+        case '4': uspeh = 'prav dober (4)'; break;
+        case '5': uspeh = 'odlicen (5)'; break;
+        case 'N': uspeh = 'ne ocenjen'; break;
       }
-
       const all = [...grades.a, ...grades.b, ...grades.c];
       const negatives = all.filter(g => g === '1').length;
-      const decision = negatives <= 3 ? 'allowed' : 'not allowed';
+      const decision = negatives <= 3 ? 'sme' : 'ne sme';
       const ref = 'REF-' + Date.now();
-
       const fs = 12;
       page.drawText(`${s.name} ${s.surname}`, { x: 120, y: 670, size: fs });
       page.drawText(grades.a.join(', ') || '-', { x: 220, y: 535, size: fs });
@@ -206,17 +204,16 @@
       page.drawText(String(negatives), { x: 330, y: 390, size: fs });
       page.drawText(decision, { x: 240, y: 360, size: fs });
       page.drawText(`${s.name} ${s.surname}`, { x: 210, y: 330, size: fs });
-      page.drawText(success, { x: 200, y: 300, size: fs });
+      page.drawText(uspeh, { x: 200, y: 300, size: fs });
       page.drawText(ref, { x: 150, y: 265, size: 10 });
-
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `Report_${s.name}_${s.surname}.pdf`;
+      link.download = `OOC_${s.name}_${s.surname}.pdf`;
       link.click();
     } catch (err) {
-      alert('Error generating PDF: ' + err.message);
+      alert('Napaka pri generiranju PDF-ja: ' + err.message);
     }
   };
 
@@ -232,4 +229,3 @@
 </script>
 </body>
 </html>
-
