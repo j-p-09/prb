@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>E-redovalnica</title>
-  <script src="./pdf-lib.min.js"></script>
-  <script src="./fontkit.min.js"></script>
+  <!-- pdf-lib iz CDN za zanesljivo nalaganje -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js" defer></script>
+  <script src="./fontkit.min.js" defer></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4 }
     nav { display: flex; background: #333; color: #fff }
@@ -45,11 +46,11 @@
   </table>
 </div>
 <div id="nastavitve" class="page">
-  <h2>Seznam ucencev</h2>
+  <h2>Seznam ucenec</h2>
   <div id="studentList" class="student-list"></div>
-  <h3>Dodaj novega ucenca</h3>
-  <input id="newName"  type="text" placeholder="Ime" />
-  <input id="newSurname" type="text" placeholder="Priimek" />
+  <h3>Dodaj novega ucenec</h3>
+  <input id="newName"  type="text" placeholder="Ime">
+  <input id="newSurname" type="text" placeholder="Priimek">
   <button id="addBtn">Dodaj</button>
 </div>
 <div id="overlay" class="overlay"></div>
@@ -61,7 +62,7 @@
   </div>
 </div>
 
-<script>
+<script defer>
 window.onload = async () => {
   const students = JSON.parse(localStorage.getItem("students") || "[]");
   const $$ = sel => document.querySelector(sel);
@@ -173,14 +174,13 @@ window.onload = async () => {
 
   window.downloadOOC = async i => {
     try {
-      const url = 'OOC.pdf';
+      if (!window.PDFLib) throw new Error("PDFLib ni naložen!");
+      if (!window.fontkit) throw new Error("Fontkit ni naložen!");
+
+      const url = 'OOC.pdf'; // Tvoj predloga PDF v isti mapi
       const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
 
-      if (!window.fontkit) {
-        alert("Fontkit ni nalozen!");
-        return;
-      }
       pdfDoc.registerFontkit(window.fontkit);
 
       const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
@@ -224,20 +224,27 @@ window.onload = async () => {
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `OOC_${s.name}_${s.surname}.pdf`;
-      link.click();
-    } catch (err) {
-      alert('Napaka pri generiranju PDF-ja: ' + err.message);
+      const urlBlob = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = urlBlob;
+      a.download = `${s.name}_${s.surname}_OOC.pdf`;
+      a.click();
+
+      URL.revokeObjectURL(urlBlob);
+
+    } catch (e) {
+      alert('Napaka pri generiranju PDF-ja: ' + e.message);
+      console.error(e);
     }
   };
 
+  // Zavihek menjava
   $$$('.tab-btn').forEach(btn => btn.onclick = () => {
     $$$('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     $$$('.page').forEach(p => p.classList.remove('active'));
-    $$('#' + btn.dataset.tab).classList.add('active');
+    $(`#${btn.dataset.tab}`).classList.add('active');
   });
 
   renderTable();
