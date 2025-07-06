@@ -5,29 +5,30 @@
   <title>E‑redovalnica</title>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
-    body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
-    nav{display:flex;background:#333;color:#fff}
-    nav button{flex:1;padding:15px;border:none;background:#333;color:#fff;font-weight:bold;cursor:pointer}
-    nav button.active{background:#555}
-    .page{display:none;padding:20px}
-    .page.active{display:block}
-    table{width:100%;border-collapse:collapse;background:#fff}
-    th,td{border:1px solid #ccc;padding:10px;text-align:center}
-    th{background:#eee}
-    .student-name{font-weight:bold}
-    .student-surname{display:block;font-weight:normal}
-    .blue{color:#0066cc;font-weight:bold}
-    .red{color:#cc0000;font-weight:bold}
-    .black{color:#000;font-weight:bold;font-size:1.2em}
-    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5}
-    .dialog{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border:1px solid #ccc;box-shadow:0 0 10px rgba(0,0,0,.3);z-index:10;min-width:260px}
-    .dialog h3{margin-top:0}
-    .dialog .bottom-bar{display:flex;justify-content:space-between;margin-top:15px}
-    .dialog button{padding:6px 12px;cursor:pointer}
-    .student-list{background:#fff;padding:10px}
-    .student-item{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .student-item span{flex:1}
-    input[type=text]{padding:6px;margin-right:8px}
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+    nav { display: flex; background: #333; color: #fff; }
+    nav button { flex: 1; padding: 15px; border: none; background: #333; color: #fff; font-weight: bold; cursor: pointer; }
+    nav button.active { background: #555; }
+    .page { display: none; padding: 20px; }
+    .page.active { display: block; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background: #eee; }
+    .student-name { font-weight: bold; }
+    .student-surname { display: block; font-weight: normal; }
+    .blue { color: #0066cc; font-weight: bold; }
+    .red { color: #cc0000; font-weight: bold; }
+    .black { color: #000; font-weight: bold; font-size: 1.2em; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 5; }
+    .dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: #fff; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,.3); z-index: 10; min-width: 260px; }
+    .dialog h3 { margin-top: 0; }
+    .dialog .bottom-bar { display: flex; justify-content: space-between; margin-top: 15px; }
+    .dialog button { padding: 6px 12px; cursor: pointer; }
+    .student-list { background: #fff; padding: 10px; }
+    .student-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .student-item span { flex: 1; }
+    input[type=text] { padding: 6px; margin-right: 8px; }
   </style>
 </head>
 <body>
@@ -35,7 +36,6 @@
   <button class="tab-btn active" data-tab="redovalnica">Redovalnica</button>
   <button class="tab-btn" data-tab="nastavitve">Nastavitve</button>
 </nav>
-
 <div id="redovalnica" class="page active">
   <table id="gradeTable">
     <thead>
@@ -44,16 +44,14 @@
     <tbody></tbody>
   </table>
 </div>
-
 <div id="nastavitve" class="page">
   <h2>Seznam učencev</h2>
   <div id="studentList" class="student-list"></div>
   <h3>Dodaj novega učenca</h3>
-  <input id="newName"  type="text" placeholder="Ime">
+  <input id="newName" type="text" placeholder="Ime">
   <input id="newSurname" type="text" placeholder="Priimek">
   <button id="addBtn">Dodaj</button>
 </div>
-
 <div id="overlay" class="overlay"></div>
 <div id="dialog" class="dialog">
   <div id="dialogContent"></div>
@@ -62,136 +60,129 @@
     <button id="saveBtn">Shrani oceno</button>
   </div>
 </div>
-
 <script>
-(async()=>{
-  const students=[];
-  const $$=sel=>document.querySelector(sel);
-  const $$$=sel=>document.querySelectorAll(sel);
+(async () => {
+  const students = [];
+  const $$ = sel => document.querySelector(sel);
+  const $$$ = sel => document.querySelectorAll(sel);
 
-  function renderTable(){
-    const tbody=$$('#gradeTable tbody');
-    tbody.innerHTML='';
-    students.forEach((s,i)=>{
-      const tr=document.createElement('tr');
-      const tdName=document.createElement('td');
-      tdName.innerHTML=`<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
+  function renderTable() {
+    const tbody = $$('#gradeTable tbody');
+    tbody.innerHTML = '';
+    students.forEach((s, i) => {
+      const tr = document.createElement('tr');
+      const tdName = document.createElement('td');
+      tdName.innerHTML = `<span class="student-name">${s.name}</span><span class="student-surname">${s.surname}</span>`;
       tr.appendChild(tdName);
-      ['a','b','c'].forEach(sk=>{
-        const td=document.createElement('td');
-        td.innerHTML=(s[sk]||[]).join(', ');
-        td.onclick=()=>openDialog(i,sk);
+      ['a', 'b', 'c'].forEach(sk => {
+        const td = document.createElement('td');
+        td.innerHTML = (s[sk] || []).join(', ');
+        td.onclick = () => openDialog(i, sk);
         tr.appendChild(td);
       });
-      const tdFinal=document.createElement('td');
-      tdFinal.innerHTML=s.final||'';
-      tdFinal.onclick=()=>openDialog(i,'final');
+      const tdFinal = document.createElement('td');
+      tdFinal.innerHTML = s.final || '';
+      tdFinal.onclick = () => openDialog(i, 'final');
       tr.appendChild(tdFinal);
       tbody.appendChild(tr);
     });
     renderStudentList();
   }
 
-  function renderStudentList(){
-    const list=$$('#studentList');
-    list.innerHTML='';
-    students.forEach((s,i)=>{
-      const div=document.createElement('div');
-      div.className='student-item';
-      div.innerHTML=`<span>${s.name} ${s.surname}</span>`+
-        `<button onclick="downloadOOC(${i})">OOC</button>`+
+  function renderStudentList() {
+    const list = $$('#studentList');
+    list.innerHTML = '';
+    students.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'student-item';
+      div.innerHTML = `<span>${s.name} ${s.surname}</span>` +
+        `<button onclick="downloadOOC(${i})">OOC</button>` +
         `<button onclick="removeStudent(${i})">Izbriši</button>`;
       list.appendChild(div);
     });
   }
 
-  $$('#addBtn').onclick=()=>{
-    const name=$$('#newName').value.trim();
-    const surname=$$('#newSurname').value.trim();
-    if(name&&surname){
-      students.push({name,surname,a:[],b:[],c:[],final:''});
-      $$('#newName').value='';
-      $$('#newSurname').value='';
+  $$('#addBtn').onclick = () => {
+    const name = $$('#newName').value.trim();
+    const surname = $$('#newSurname').value.trim();
+    if (name && surname) {
+      students.push({ name, surname, a: [], b: [], c: [], final: '' });
+      $$('#newName').value = '';
+      $$('#newSurname').value = '';
       renderTable();
     }
   };
 
-  window.removeStudent=index=>{students.splice(index,1);renderTable();};
+  window.removeStudent = index => { students.splice(index, 1); renderTable(); };
 
-  const overlay=$$('#overlay');
-  const dialog=$$('#dialog');
-  const content=$$('#dialogContent');
-  let activeStudent=-1,activeType='';
+  const overlay = $$('#overlay');
+  const dialog = $$('#dialog');
+  const content = $$('#dialogContent');
+  let activeStudent = -1, activeType = '';
 
-  function openDialog(index,type){
-    activeStudent=index;activeType=type;
-    overlay.style.display='block';
-    dialog.style.display='block';
-    if(type==='final'){
-      const s=students[index];
-      const numGrades=[...s.a,...s.b,...s.c].map(g=>parseInt(g.replace(/<[^>]+>/g,''))).filter(n=>!isNaN(n));
-      const avg=numGrades.length?(numGrades.reduce((a,b)=>a+b,0)/numGrades.length).toFixed(2):'–';
-      content.innerHTML=`<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>`+
-        [1,2,3,4,5].map(n=>`<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
-    }else{
-      content.innerHTML=`<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>`+
-        [1,2,3,4,5].map(n=>`<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
+  function openDialog(index, type) {
+    activeStudent = index; activeType = type;
+    overlay.style.display = 'block';
+    dialog.style.display = 'block';
+    if (type === 'final') {
+      const s = students[index];
+      const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
+      const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
+      content.innerHTML = `<h3>Končna ocena</h3><p>Povprečje: ${avg}</p>` +
+        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
+    } else {
+      content.innerHTML = `<h3>Vpiši oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>` +
+        [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
     }
   }
 
-  function closeDialog(){overlay.style.display='none';dialog.style.display='none';content.innerHTML='';activeStudent=-1;activeType='';}
-  $$('#cancelBtn').onclick=closeDialog;
-
-  $$('#saveBtn').onclick=()=>{
-    const sel=document.querySelector('input[name="gradeVal"]:checked');
-    if(!sel){alert('Izberi oceno!');return;}
-    const val=sel.value;
-    if(activeType==='final'){
-      students[activeStudent].final=`<span class="black">${val}</span>`;
-    }else{
-      const colour=$$('#gradeType').value;
-      const formatted=`<span class="${colour}">${val}</span>`;
+  function closeDialog() { overlay.style.display = 'none'; dialog.style.display = 'none'; content.innerHTML = ''; activeStudent = -1; activeType = ''; }
+  $$('#cancelBtn').onclick = closeDialog;
+  $$('#saveBtn').onclick = () => {
+    const sel = document.querySelector('input[name="gradeVal"]:checked');
+    if (!sel) { alert('Izberi oceno!'); return; }
+    const val = sel.value;
+    if (activeType === 'final') {
+      students[activeStudent].final = `<span class="black">${val}</span>`;
+    } else {
+      const colour = $$('#gradeType').value;
+      const formatted = `<span class="${colour}">${val}</span>`;
       students[activeStudent][activeType].push(formatted);
     }
-    closeDialog();renderTable();
+    closeDialog(); renderTable();
   };
+  overlay.onclick = closeDialog;
 
-  overlay.onclick=closeDialog;
-
-  // PDF generacija z Unicode podporo
   window.downloadOOC = async i => {
     try {
       const existingPdfBytes = await fetch('OOC.pdf').then(res => res.arrayBuffer());
+      const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
+
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+      const font = await pdfDoc.embedFont(fontBytes);
       const page = pdfDoc.getPage(0);
 
-      const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-
       const s = students[i];
-      const grades = {
-        a: s.a.map(g => g.replace(/<[^>]+>/g, '')),
-        b: s.b.map(g => g.replace(/<[^>]+>/g, '')),
-        c: s.c.map(g => g.replace(/<[^>]+>/g, ''))
-      };
+      const grades = { a: s.a.map(g => g.replace(/<[^>]+>/g, '')), b: s.b.map(g => g.replace(/<[^>]+>/g, '')), c: s.c.map(g => g.replace(/<[^>]+>/g, '')) };
       const final = s.final.replace(/<[^>]+>/g, '');
       const all = [...grades.a, ...grades.b, ...grades.c];
       const negatives = all.filter(g => g === '1').length;
       const decision = negatives === 0 ? 'sme' : 'ne sme';
       const ref = 'REF-' + Date.now();
 
-      const mm = mm => mm * 2.83465;
-      const y = mm => 842 - mm; // invert Y
+      const mm = val => val * 2.83465;
+      const y = mm => 842 - mm;
 
-      page.drawText(`${s.name} ${s.surname}`, { x: mm(105.3), y: y(53.2), size: 12, font: helveticaFont });
-      page.drawText(grades.a.join(', '), { x: mm(110.7), y: y(102.7), size: 12, font: helveticaFont });
-      page.drawText(grades.b.join(', '), { x: mm(113.9), y: y(124.9), size: 12, font: helveticaFont });
-      page.drawText(grades.c.join(', '), { x: mm(105.6), y: y(145), size: 12, font: helveticaFont });
-      page.drawText(final || '-', { x: mm(109.1), y: y(165.6), size: 12, font: helveticaFont });
-      page.drawText(String(negatives), { x: mm(169.5), y: y(189.2), size: 12, font: helveticaFont });
-      page.drawText(`${s.name} ${s.surname}`, { x: mm(137.3), y: y(202.8), size: 12, font: helveticaFont });
-      page.drawText(decision, { x: mm(44.4), y: y(216.2), size: 12, font: helveticaFont });
-      page.drawText('še ni določen', { x: mm(128.9), y: y(238.3), size: 12, font: helveticaFont });
-      page.drawText(ref, { x: mm(38.1), y: y(263.6), size: 10, font: helveticaFont });
+      page.drawText(`${s.name} ${s.surname}`, { x: mm(105.3), y: y(53.2), size: 12, font });
+      page.drawText(grades.a.join(', '), { x: mm(110.7), y: y(102.7), size: 12, font });
+      page.drawText(grades.b.join(', '), { x: mm(113.9), y: y(124.9), size: 12, font });
+      page.drawText(grades.c.join(', '), { x: mm(105.6), y: y(145), size: 12, font });
+      page.drawText(final || '-', { x: mm(109.1), y: y(165.6), size: 12, font });
+      page.drawText(String(negatives), { x: mm(169.5), y: y(189.2), size: 12, font });
+      page.drawText(`${s.name} ${s.surname}`, { x: mm(137.3), y: y(202.8), size: 12, font });
+      page.drawText(decision, { x: mm(44.4), y: y(216.2), size: 12, font });
+      page.drawText('še ni določen', { x: mm(128.9), y: y(238.3), size: 12, font });
+      page.drawText(ref, { x: mm(38.1), y: y(263.6), size: 10, font });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -204,11 +195,11 @@
     }
   };
 
-  $$$('.tab-btn').forEach(btn=>btn.onclick=()=>{
-    $$$('.tab-btn').forEach(b=>b.classList.remove('active'));
+  $$$('.tab-btn').forEach(btn => btn.onclick = () => {
+    $$$('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    $$$('.page').forEach(p=>p.classList.remove('active'));
-    $$('#'+btn.dataset.tab).classList.add('active');
+    $$$('.page').forEach(p => p.classList.remove('active'));
+    $$('#' + btn.dataset.tab).classList.add('active');
   });
 
   renderTable();
