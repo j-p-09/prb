@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>E-redovalnica</title>
+
+  <!-- pdf-lib knjižnica iz CDN -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4 }
     nav { display: flex; background: #333; color: #fff }
@@ -58,10 +62,6 @@
     <button id="saveBtn">Shrani oceno</button>
   </div>
 </div>
-
-<!-- Pravilna vključitev pdf-lib in fontkit preko CDN -->
-<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-<script src="https://unpkg.com/fontkit@latest/dist/fontkit.min.js"></script>
 
 <script>
 (async () => {
@@ -173,20 +173,14 @@
   };
   overlay.onclick = closeDialog;
 
+  // ✅ BREZ fontkit – uporablja Helvetica
   window.downloadOOC = async i => {
     try {
-      const url = 'OOC.pdf'; // Tvoj predloga PDF - lahko zamenjaš po potrebi
+      const url = 'OOC.pdf'; // mora obstajati v istem direktoriju
       const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
 
-      if (!window.fontkit) {
-        alert("Fontkit ni naložen!");
-        return;
-      }
-      pdfDoc.registerFontkit(window.fontkit);
-
-      const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
-      const font = await pdfDoc.embedFont(fontBytes);
+      const font = await pdfDoc.embedStandardFont(PDFLib.StandardFonts.Helvetica);
 
       const page = pdfDoc.getPage(0);
       const s = students[i];
