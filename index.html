@@ -38,7 +38,7 @@
 <div id="redovalnica" class="page active">
   <table id="gradeTable">
     <thead>
-      <tr><th>UČenec</th><th>SKLOP A</th><th>SKLOP B</th><th>SKLOP C</th><th>KONEC</th></tr>
+      <tr><th>Učenec</th><th>SKLOP A</th><th>SKLOP B</th><th>SKLOP C</th><th>KONEC</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -171,16 +171,11 @@
 
   window.downloadOOC = async i => {
     try {
-      const url = 'OOC.pdf';
-      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
-      const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+      const mmToPt = mm => mm * 2.83465;
+      const pdfDoc = await PDFLib.PDFDocument.load(await fetch('OOC.pdf').then(res => res.arrayBuffer()));
       const page = pdfDoc.getPage(0);
       const s = students[i];
-      const grades = {
-        a: s.a.map(g => g.replace(/<[^>]+>/g, '')),
-        b: s.b.map(g => g.replace(/<[^>]+>/g, '')),
-        c: s.c.map(g => g.replace(/<[^>]+>/g, ''))
-      };
+      const grades = { a: s.a.map(g => g.replace(/<[^>]+>/g, '')), b: s.b.map(g => g.replace(/<[^>]+>/g, '')), c: s.c.map(g => g.replace(/<[^>]+>/g, '')) };
       const finalRaw = s.final.replace(/<[^>]+>/g, '');
       let uspeh = 'se ni dolocil';
       switch (finalRaw) {
@@ -196,16 +191,16 @@
       const decision = negatives <= 3 ? 'sme' : 'ne sme';
       const ref = 'REF-' + Date.now();
       const fs = 12;
-      page.drawText(`${s.name} ${s.surname}`, { x: 120, y: 670, size: fs });
-      page.drawText(grades.a.join(', ') || '-', { x: 220, y: 535, size: fs });
-      page.drawText(grades.b.join(', ') || '-', { x: 220, y: 505, size: fs });
-      page.drawText(grades.c.join(', ') || '-', { x: 220, y: 475, size: fs });
-      page.drawText(finalRaw || '-', { x: 220, y: 445, size: fs });
-      page.drawText(String(negatives), { x: 330, y: 390, size: fs });
-      page.drawText(decision, { x: 240, y: 360, size: fs });
-      page.drawText(`${s.name} ${s.surname}`, { x: 210, y: 330, size: fs });
-      page.drawText(uspeh, { x: 200, y: 300, size: fs });
-      page.drawText(ref, { x: 150, y: 265, size: 10 });
+      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(104.6), y: mmToPt(297 - 52.6), size: fs });
+      page.drawText(grades.a.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 104.6), size: fs });
+      page.drawText(grades.b.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 125.4), size: fs });
+      page.drawText(grades.c.join(', ') || '-', { x: mmToPt(104.8), y: mmToPt(297 - 145.7), size: fs });
+      page.drawText(finalRaw || '-', { x: mmToPt(104.8), y: mmToPt(297 - 165.6), size: fs });
+      page.drawText(String(negatives), { x: mmToPt(170), y: mmToPt(297 - 190.5), size: fs });
+      page.drawText(`${s.name} ${s.surname}`, { x: mmToPt(139.9), y: mmToPt(297 - 202.7), size: fs });
+      page.drawText(decision, { x: mmToPt(45), y: mmToPt(297 - 216.4), size: fs });
+      page.drawText(uspeh, { x: mmToPt(129.8), y: mmToPt(297 - 238.8), size: fs });
+      page.drawText(ref, { x: mmToPt(39.9), y: mmToPt(297 - 263.9), size: 10 });
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const link = document.createElement('a');
