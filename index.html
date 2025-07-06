@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>E-redovalnica</title>
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="./pdf-lib.min.js"></script>
   <script src="./fontkit.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4 }
@@ -20,10 +20,14 @@
     .blue { color: #0066cc; font-weight: bold }
     .red { color: #cc0000; font-weight: bold }
     .black { color: #000; font-weight: bold; font-size: 1.2em }
-    .overlay, .dialog { display: none; position: fixed; z-index: 10; background: rgba(0,0,0,.5); }
-    .dialog { background: #fff; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,.3); min-width: 260px; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 11; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 5 }
+    .dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,.3); z-index: 10; min-width: 260px }
+    .dialog h3 { margin-top: 0 }
+    .dialog .bottom-bar { display: flex; justify-content: space-between; margin-top: 15px }
+    .dialog button { padding: 6px 12px; cursor: pointer }
     .student-list { background: #fff; padding: 10px }
     .student-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px }
+    .student-item span { flex: 1 }
     input[type=text] { padding: 6px; margin-right: 8px }
   </style>
 </head>
@@ -41,9 +45,9 @@
   </table>
 </div>
 <div id="nastavitve" class="page">
-  <h2>Seznam uencev</h2>
+  <h2>Seznam ucencev</h2>
   <div id="studentList" class="student-list"></div>
-  <h3>Dodaj novega uenca</h3>
+  <h3>Dodaj novega ucenca</h3>
   <input id="newName"  type="text" placeholder="Ime" />
   <input id="newSurname" type="text" placeholder="Priimek" />
   <button id="addBtn">Dodaj</button>
@@ -56,8 +60,9 @@
     <button id="saveBtn">Shrani oceno</button>
   </div>
 </div>
+
 <script>
-(async () => {
+window.onload = async () => {
   const students = JSON.parse(localStorage.getItem("students") || "[]");
   const $$ = sel => document.querySelector(sel);
   const $$$ = sel => document.querySelectorAll(sel);
@@ -130,13 +135,13 @@
     dialog.style.display = 'block';
     const s = students[index];
     if (type === 'final') {
-      const grades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
-      const avg = grades.length ? (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(2) : '–';
+      const numGrades = [...s.a, ...s.b, ...s.c].map(g => parseInt(g.replace(/<[^>]+>/g, ''))).filter(n => !isNaN(n));
+      const avg = numGrades.length ? (numGrades.reduce((a, b) => a + b, 0) / numGrades.length).toFixed(2) : '–';
       content.innerHTML = `<h3>Koncna ocena</h3><p>Povprecje: ${avg}</p>` +
         [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('') +
         `<div><input type="radio" name="gradeVal" id="gN" value="N"> <label for="gN">N</label></div>`;
     } else {
-      content.innerHTML = `<h3>Vpisi oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna</option><option value="red">Pisna</option><option value="blue">Izdelek</option></select>` +
+      content.innerHTML = `<h3>Vpisi oceno</h3><label>Tip ocene:</label><select id="gradeType"><option value="blue">Ustna ocena</option><option value="red">Pisna ocena</option><option value="blue">Izdelek</option></select>` +
         [1, 2, 3, 4, 5].map(n => `<div><input type="radio" name="gradeVal" id="g${n}" value="${n}"> <label for="g${n}">${n}</label></div>`).join('');
     }
   }
@@ -152,7 +157,7 @@
   $$('#cancelBtn').onclick = closeDialog;
   $$('#saveBtn').onclick = () => {
     const sel = document.querySelector('input[name="gradeVal"]:checked');
-    if (!sel) return alert("Izberi oceno!");
+    if (!sel) { alert('Izberi oceno!'); return; }
     const val = sel.value;
     if (activeType === 'final') {
       students[activeStudent].final = `<span class="black">${val}</span>`;
@@ -168,11 +173,16 @@
 
   window.downloadOOC = async i => {
     try {
-      const existingPdfBytes = await fetch('OOC.pdf').then(res => res.arrayBuffer());
+      const url = 'OOC.pdf';
+      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
 
-      if (!window.fontkit) return alert("Fontkit ni nalozen!");
+      if (!window.fontkit) {
+        alert("Fontkit ni nalozen!");
+        return;
+      }
       pdfDoc.registerFontkit(window.fontkit);
+
       const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
       const font = await pdfDoc.embedFont(fontBytes);
 
@@ -183,8 +193,20 @@
         b: s.b.map(g => g.replace(/<[^>]+>/g, '')),
         c: s.c.map(g => g.replace(/<[^>]+>/g, ''))
       };
-      const finalRaw = s.final.replace(/<[^>]+>/g, '') || '-';
-      const negatives = [...grades.a, ...grades.b, ...grades.c].filter(g => g === '1').length;
+
+      const finalRaw = s.final.replace(/<[^>]+>/g, '');
+      let uspeh = 'se ni dolocen';
+      switch (finalRaw) {
+        case '1': uspeh = 'nezadosten (1)'; break;
+        case '2': uspeh = 'zadosten (2)'; break;
+        case '3': uspeh = 'dober (3)'; break;
+        case '4': uspeh = 'prav dober (4)'; break;
+        case '5': uspeh = 'odlicen (5)'; break;
+        case 'N': uspeh = 'ne ocenjen'; break;
+      }
+
+      const all = [...grades.a, ...grades.b, ...grades.c];
+      const negatives = all.filter(g => g === '1').length;
       const decision = negatives <= 3 ? 'sme' : 'ne sme';
       const ref = 'REF-' + Date.now();
 
@@ -193,11 +215,11 @@
       page.drawText(grades.a.join(', ') || '-', { x: 220, y: 535, size: fs, font });
       page.drawText(grades.b.join(', ') || '-', { x: 220, y: 505, size: fs, font });
       page.drawText(grades.c.join(', ') || '-', { x: 220, y: 475, size: fs, font });
-      page.drawText(finalRaw, { x: 220, y: 445, size: fs, font });
+      page.drawText(finalRaw || '-', { x: 220, y: 445, size: fs, font });
       page.drawText(String(negatives), { x: 330, y: 390, size: fs, font });
       page.drawText(decision, { x: 240, y: 360, size: fs, font });
       page.drawText(`${s.name} ${s.surname}`, { x: 210, y: 330, size: fs, font });
-      page.drawText("odlicen (5)", { x: 200, y: 300, size: fs, font });
+      page.drawText(uspeh, { x: 200, y: 300, size: fs, font });
       page.drawText(ref, { x: 150, y: 265, size: 10, font });
 
       const pdfBytes = await pdfDoc.save();
@@ -219,7 +241,7 @@
   });
 
   renderTable();
-})();
+};
 </script>
 </body>
 </html>
