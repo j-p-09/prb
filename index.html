@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>E-redovalnica</title>
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fontkit@0.0.4/dist/fontkit.min.js"></script>
+  <script src="./pdf-lib.min.js"></script>
+  <script src="./fontkit.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4 }
     nav { display: flex; background: #333; color: #fff }
@@ -170,16 +170,16 @@
   };
   overlay.onclick = closeDialog;
 
-  function centerTextX(text, font, size, centerX) {
-    const textWidth = font.widthOfTextAtSize(text, size);
-    return centerX - textWidth / 2;
-  }
-
   window.downloadOOC = async i => {
     try {
       const url = 'OOC.pdf';
       const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
       const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+
+      if (!window.fontkit) {
+        alert("Fontkit ni naložen!");
+        return;
+      }
       pdfDoc.registerFontkit(window.fontkit);
 
       const fontBytes = await fetch('Roboto_SemiCondensed-Regular.ttf').then(res => res.arrayBuffer());
@@ -202,9 +202,6 @@
         case '4': uspeh = 'prav dober (4)'; break;
         case '5': uspeh = 'odličen (5)'; break;
         case 'N': uspeh = 'ne ocenjen'; break;
-        default:
-          if (!finalRaw || finalRaw === '–') uspeh = 'še ni določen';
-          break;
       }
 
       const all = [...grades.a, ...grades.b, ...grades.c];
@@ -213,16 +210,16 @@
       const ref = 'REF-' + Date.now();
 
       const fs = 12;
-      page.drawText(`${s.name} ${s.surname}`, { x: 280, y: 742, size: fs, font });
-      page.drawText(grades.a.join(', ') || '-', { x: centerTextX(grades.a.join(', ') || '-', font, fs, 314), y: 489, size: fs, font });
-      page.drawText(grades.b.join(', ') || '-', { x: centerTextX(grades.b.join(', ') || '-', font, fs, 323), y: 445, size: fs, font });
-      page.drawText(grades.c.join(', ') || '-', { x: centerTextX(grades.c.join(', ') || '-', font, fs, 299), y: 408, size: fs, font });
-      page.drawText(finalRaw || '-', { x: centerTextX(finalRaw || '-', font, fs, 309), y: 372, size: fs, font });
-      page.drawText(String(negatives), { x: centerTextX(String(negatives), font, fs, 480), y: 334, size: fs, font });
-      page.drawText(`${s.name} ${s.surname}`, { x: centerTextX(`${s.name} ${s.surname}`, font, fs, 389), y: 310, size: fs, font });
-      page.drawText(decision, { x: centerTextX(decision, font, fs, 126), y: 283, size: fs, font });
-      page.drawText(uspeh, { x: centerTextX(uspeh, font, fs, 365), y: 248, size: fs, font });
-      page.drawText(ref, { x: 108, y: 215, size: 10, font });
+      page.drawText(`${s.name} ${s.surname}`, { x: 120, y: 670, size: fs, font });
+      page.drawText(grades.a.join(', ') || '-', { x: 220, y: 535, size: fs, font });
+      page.drawText(grades.b.join(', ') || '-', { x: 220, y: 505, size: fs, font });
+      page.drawText(grades.c.join(', ') || '-', { x: 220, y: 475, size: fs, font });
+      page.drawText(finalRaw || '-', { x: 220, y: 445, size: fs, font });
+      page.drawText(String(negatives), { x: 330, y: 390, size: fs, font });
+      page.drawText(decision, { x: 240, y: 360, size: fs, font });
+      page.drawText(`${s.name} ${s.surname}`, { x: 210, y: 330, size: fs, font });
+      page.drawText(uspeh, { x: 200, y: 300, size: fs, font });
+      page.drawText(ref, { x: 150, y: 265, size: 10, font });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -247,3 +244,4 @@
 </script>
 </body>
 </html>
+
